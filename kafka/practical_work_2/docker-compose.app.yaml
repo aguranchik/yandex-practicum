@@ -1,0 +1,25 @@
+name: practical_work_2_app
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
+      KAFKA_TOPIC: practical-work-2-orders
+      SINGLE_GROUP_ID: pw2-single-group
+      BATCH_GROUP_ID: pw2-batch-group
+      PRODUCER_INTERVAL: 1s
+      BATCH_SIZE: "10"
+      POLL_TIMEOUT: 1s
+      FETCH_MIN_BYTES: "1024"
+      FETCH_MAX_WAIT_MS: "5000"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    external: true
+    name: practical_work_2_net

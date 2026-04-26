@@ -1,0 +1,19 @@
+# Команда создания топика
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic practical-work-2-orders \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2
+
+# Команда получения подробной информации о топике
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --describe \
+  --topic practical-work-2-orders \
+  --bootstrap-server kafka-1:9092
+
+# Вывод команды --describe
+Topic: practical-work-2-orders	TopicId: LKy4ehOCTA2Ckul7Y6_gCw	PartitionCount: 3	ReplicationFactor: 2	Configs: min.insync.replicas=2
+	Topic: practical-work-2-orders	Partition: 0	Leader: 0	Replicas: 0,1	Isr: 0,1
+	Topic: practical-work-2-orders	Partition: 1	Leader: 1	Replicas: 1,2	Isr: 1,2
+	Topic: practical-work-2-orders	Partition: 2	Leader: 2	Replicas: 2,0	Isr: 2,0
