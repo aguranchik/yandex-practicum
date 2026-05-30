@@ -1,0 +1,23 @@
+# Тестовые данные для kafka-console-producer.
+# Формат строк: key<TAB>json. Для producer используйте parse.key=true и key.separator=$'\t'.
+
+# 1. Динамически задаем запрещенные слова. Ключ должен быть global.
+global	{"words":["spam","scam","badword"],"action":"replace","updated_at":"2026-05-15T00:00:00Z"}
+
+# 2. Bob блокирует Alice. Ключ должен совпадать с user_id.
+bob	{"user_id":"bob","blocked_user_id":"alice","action":"block","updated_at":"2026-05-15T00:01:00Z"}
+
+# 3. Сообщение от Alice к Bob содержит запрещенное слово, но будет отброшено из-за блокировки.
+bob	{"message_id":"msg-001","sender_id":"alice","recipient_id":"bob","text":"hello Bob, this spam should not reach you","created_at":"2026-05-15T00:02:00Z"}
+
+# 4. Сообщение от Carol к Bob содержит запрещенные слова и должно попасть в filtered_messages с маской.
+bob	{"message_id":"msg-002","sender_id":"carol","recipient_id":"bob","text":"this scam and badword must be hidden","created_at":"2026-05-15T00:03:00Z"}
+
+# 5. Alice пишет Carol. Carol никого не блокировала, сообщение должно пройти.
+carol	{"message_id":"msg-003","sender_id":"alice","recipient_id":"carol","text":"clean message for Carol","created_at":"2026-05-15T00:04:00Z"}
+
+# 6. Bob разблокирует Alice.
+bob	{"user_id":"bob","blocked_user_id":"alice","action":"unblock","updated_at":"2026-05-15T00:05:00Z"}
+
+# 7. После разблокировки сообщение Alice к Bob должно пройти, но запрещенное слово будет замаскировано.
+bob	{"message_id":"msg-004","sender_id":"alice","recipient_id":"bob","text":"now Alice can write, but spam is masked","created_at":"2026-05-15T00:06:00Z"}

@@ -1,0 +1,26 @@
+name: practical_work_3_app
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
+      MESSAGES_TOPIC: messages
+      CENSORED_TOPIC: censored_messages
+      FILTERED_TOPIC: filtered_messages
+      BLOCKED_USERS_TOPIC: blocked_users
+      BANNED_WORDS_TOPIC: banned_words
+      BLOCK_LIST_GROUP: pw3-block-list
+      BANNED_WORDS_GROUP: pw3-banned-words
+      CENSORSHIP_GROUP: pw3-censorship
+      BLOCK_FILTERING_GROUP: pw3-block-filtering
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    external: true
+    name: practical_work_3_net

@@ -1,0 +1,64 @@
+# Создание топиков для практической работы 3
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic messages \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic filtered_messages \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic blocked_users \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic banned_words \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic censored_messages \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config min.insync.replicas=2
+
+# Топики state store для Goka. Они нужны для group table и должны быть compacted.
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic pw3-block-list-table \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config cleanup.policy=compact \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --create \
+  --topic pw3-banned-words-table \
+  --bootstrap-server kafka-1:9092 \
+  --partitions 3 \
+  --replication-factor 2 \
+  --config cleanup.policy=compact \
+  --config min.insync.replicas=2
+
+docker compose exec -T kafka-1 \
+  kafka-topics.sh --bootstrap-server kafka-1:9092 --list
