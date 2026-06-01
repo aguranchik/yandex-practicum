@@ -1,0 +1,26 @@
+{
+  "name": "postgres-cdc-source",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres-user",
+    "database.password": "postgres-pw",
+    "database.dbname": "shop",
+    "topic.prefix": "postgres",
+    "plugin.name": "pgoutput",
+    "slot.name": "pw5_debezium_slot",
+    "publication.name": "pw5_publication",
+    "publication.autocreate.mode": "filtered",
+    "schema.include.list": "public",
+    "table.include.list": "public.users,public.orders",
+    "include.schema.changes": "false",
+    "snapshot.mode": "initial",
+    "tombstones.on.delete": "false",
+    "heartbeat.interval.ms": "10000",
+    "topic.creation.enable": "true",
+    "topic.creation.default.replication.factor": "1",
+    "topic.creation.default.partitions": "3"
+  }
+}

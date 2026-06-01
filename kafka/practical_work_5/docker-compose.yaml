@@ -1,0 +1,170 @@
+name: practical_work_5
+
+x-kafka-common:
+  &kafka-common
+  image: bitnamilegacy/kafka:3.7
+  restart: unless-stopped
+  environment:
+    &kafka-common-env
+    KAFKA_ENABLE_KRAFT: "yes"
+    ALLOW_PLAINTEXT_LISTENER: "yes"
+    KAFKA_KRAFT_CLUSTER_ID: practicalworkfive000
+    KAFKA_CFG_PROCESS_ROLES: broker,controller
+    KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+    KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+    KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+    KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+    KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: "3"
+    KAFKA_CFG_MIN_INSYNC_REPLICAS: "2"
+    KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+  networks:
+    - kafka-net
+
+services:
+  kafka-0:
+    <<: *kafka-common
+    ports:
+      - "127.0.0.1:19094:9094"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-0:9092,EXTERNAL://127.0.0.1:19094
+    volumes:
+      - kafka_0_data:/bitnami/kafka
+
+  kafka-1:
+    <<: *kafka-common
+    ports:
+      - "127.0.0.1:19095:9095"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: "1"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,EXTERNAL://127.0.0.1:19095
+    volumes:
+      - kafka_1_data:/bitnami/kafka
+
+  kafka-2:
+    <<: *kafka-common
+    ports:
+      - "127.0.0.1:19096:9096"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_NODE_ID: "2"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9096
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,EXTERNAL://127.0.0.1:19096
+    volumes:
+      - kafka_2_data:/bitnami/kafka
+
+  akhq:
+    image: tchiotludo/akhq:0.27.0
+    restart: unless-stopped
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            practical-work-5:
+              properties:
+                bootstrap.servers: "kafka-0:9092,kafka-1:9092,kafka-2:9092"
+    networks:
+      - kafka-net
+
+  postgres:
+    image: debezium/postgres:16
+    restart: unless-stopped
+    hostname: postgres
+    container_name: practical-work-5-postgres
+    ports:
+      - "127.0.0.1:15432:5432"
+    environment:
+      POSTGRES_USER: postgres-user
+      POSTGRES_PASSWORD: postgres-pw
+      POSTGRES_DB: shop
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/custom-config.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - kafka-net
+
+  kafka-connect:
+    build:
+      context: ./kafka-connect
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18083:8083"
+      - "127.0.0.1:19876:9876"
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+      - postgres
+    environment:
+      BOOTSTRAP_SERVERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
+      GROUP_ID: practical-work-5-connect
+      CONFIG_STORAGE_TOPIC: pw5-connect-configs
+      OFFSET_STORAGE_TOPIC: pw5-connect-offsets
+      STATUS_STORAGE_TOPIC: pw5-connect-statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      ADVERTISED_HOST_NAME: kafka-connect
+      KAFKA_JMX_PORT: "9875"
+      KAFKA_OPTS: "-javaagent:/opt/jmx_prometheus_javaagent-0.15.0.jar=9876:/opt/kafka-connect.yml"
+    networks:
+      - kafka-net
+
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:19090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml
+    depends_on:
+      - kafka-connect
+    networks:
+      - kafka-net
+
+  grafana:
+    image: grafana/grafana:8.1.6
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    name: practical_work_5_net
+
+volumes:
+  kafka_0_data:
+  kafka_1_data:
+  kafka_2_data:
+  postgres_data:

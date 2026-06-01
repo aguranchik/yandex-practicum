@@ -1,0 +1,19 @@
+name: practical_work_5_app
+
+services:
+  cdc-consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
+      KAFKA_TOPICS: postgres.public.users,postgres.public.orders
+      KAFKA_GROUP_ID: pw5-cdc-console-consumer
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    external: true
+    name: practical_work_5_net
