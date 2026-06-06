@@ -1,0 +1,136 @@
+name: practical_work_6
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    volumes:
+      - ./jaas-config/zookeeper_server_jaas.conf:/etc/zookeeper/secrets/zookeeper_server_jaas.conf:ro
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/zookeeper/secrets/zookeeper_server_jaas.conf
+        -Dzookeeper.authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+        -Dzookeeper.allowSaslFailedClients=false
+        -Dzookeeper.requireClientAuthScheme=sasl
+    networks:
+      - kafka-net
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["exec kafka-server-start /etc/kafka/server.properties"]
+    depends_on:
+      - zookeeper
+    ports:
+      - "127.0.0.1:29092:29092"
+    volumes:
+      - ./broker-config/kafka-1.properties:/etc/kafka/server.properties:ro
+      - ./jaas-config/kafka_server_jaas.conf:/etc/kafka/config/kafka_server_jaas.conf:ro
+      - ./certs/kafka-1:/etc/kafka/secrets:ro
+      - kafka_1_data:/var/lib/kafka/data
+    environment:
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/kafka/config/kafka_server_jaas.conf
+        -Dzookeeper.sasl.client=true
+        -Dzookeeper.sasl.client.username=kafka
+    networks:
+      - kafka-net
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["exec kafka-server-start /etc/kafka/server.properties"]
+    depends_on:
+      - zookeeper
+    ports:
+      - "127.0.0.1:29093:29093"
+    volumes:
+      - ./broker-config/kafka-2.properties:/etc/kafka/server.properties:ro
+      - ./jaas-config/kafka_server_jaas.conf:/etc/kafka/config/kafka_server_jaas.conf:ro
+      - ./certs/kafka-2:/etc/kafka/secrets:ro
+      - kafka_2_data:/var/lib/kafka/data
+    environment:
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/kafka/config/kafka_server_jaas.conf
+        -Dzookeeper.sasl.client=true
+        -Dzookeeper.sasl.client.username=kafka
+    networks:
+      - kafka-net
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["exec kafka-server-start /etc/kafka/server.properties"]
+    depends_on:
+      - zookeeper
+    ports:
+      - "127.0.0.1:29094:29094"
+    volumes:
+      - ./broker-config/kafka-3.properties:/etc/kafka/server.properties:ro
+      - ./jaas-config/kafka_server_jaas.conf:/etc/kafka/config/kafka_server_jaas.conf:ro
+      - ./certs/kafka-3:/etc/kafka/secrets:ro
+      - kafka_3_data:/var/lib/kafka/data
+    environment:
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/kafka/config/kafka_server_jaas.conf
+        -Dzookeeper.sasl.client=true
+        -Dzookeeper.sasl.client.username=kafka
+    networks:
+      - kafka-net
+
+  kafka-client:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["sleep infinity"]
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    volumes:
+      - ./certs:/etc/kafka/secrets:ro
+      - ./client:/etc/kafka/client:ro
+      - ./scripts:/scripts:ro
+    networks:
+      - kafka-net
+
+  akhq:
+    image: tchiotludo/akhq:0.27.0
+    restart: unless-stopped
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            practical-work-6:
+              properties:
+                bootstrap.servers: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+                security.protocol: SASL_SSL
+                sasl.mechanism: PLAIN
+                sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";
+                ssl.truststore.location: /app/certs/kafka.truststore.jks
+                ssl.truststore.password: changeit
+                ssl.endpoint.identification.algorithm: https
+    volumes:
+      - ./certs/client:/app/certs:ro
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    name: practical_work_6_net
+
+volumes:
+  kafka_1_data:
+  kafka_2_data:
+  kafka_3_data:
