@@ -1,0 +1,4 @@
+Topic: pw7-events	TopicId: MfDMuZVoRYqDJsSpLiyl4A	PartitionCount: 3	ReplicationFactor: 3	Configs: compression.type=zstd,min.insync.replicas=2,cleanup.policy=delete,follower.replication.throttled.replicas=*,segment.bytes=134217728,retention.ms=86400000,retention.bytes=268435456
+	Topic: pw7-events	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2	Elr: 	LastKnownElr:
+	Topic: pw7-events	Partition: 1	Leader: 1	Replicas: 1,2,3	Isr: 1,2,3	Elr: 	LastKnownElr:
+	Topic: pw7-events	Partition: 2	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1	Elr: 	LastKnownElr:

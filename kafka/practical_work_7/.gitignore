@@ -1,0 +1,8 @@
+.env
+.runtime.env
+build/*
+!build/.gitkeep
+config/nifi/state/
+config/kafka/client.properties
+*.jks
+*.pem

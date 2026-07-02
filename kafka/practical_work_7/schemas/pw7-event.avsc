@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "ru.yandex.practicum.pw7",
+  "doc": "Event used to verify Managed Kafka and Managed Schema Registry.",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "source",
+      "type": "string"
+    },
+    {
+      "name": "message",
+      "type": "string"
+    },
+    {
+      "name": "created_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

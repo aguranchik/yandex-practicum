@@ -1,0 +1,9 @@
+Verification date: 2026-07-03
+Folder ID: b1gh1qk9f6nud4fkgq6o
+
+yc managed-kafka cluster list: []
+yc compute instance list: []
+yc compute disk list: []
+
+No networks, subnets, or security groups with the pw7 prefix remain.
+The unrelated auto-created default network was preserved.

@@ -1,0 +1,6 @@
+2026/07/02 16:54:34.685986 schema registered: subject=pw7-events-value id=1
+2026/07/02 16:54:34.795156 message delivered: event_id=event-001 topic=pw7-events partition=1 offset=3
+2026/07/02 16:54:34.853839 message delivered: event_id=event-002 topic=pw7-events partition=2 offset=1
+2026/07/02 16:54:34.864169 message delivered: event_id=event-003 topic=pw7-events partition=1 offset=4
+2026/07/02 16:54:34.928110 message delivered: event_id=event-004 topic=pw7-events partition=0 offset=1
+2026/07/02 16:54:34.938817 message delivered: event_id=event-005 topic=pw7-events partition=1 offset=5

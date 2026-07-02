@@ -1,0 +1,32 @@
+#cloud-config
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - docker-compose-v2
+  - jq
+  - openjdk-17-jre-headless
+  - socat
+  - stunnel4
+
+groups:
+  - docker
+
+users:
+  - name: yc-user
+    gecos: Practical Work 7
+    groups: [sudo, docker]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - __SSH_PUBLIC_KEY__
+
+runcmd:
+  - [systemctl, enable, --now, docker]
+  - [mkdir, -p, /opt/pw7/certs, /opt/pw7/nifi, /opt/pw7/bin, /opt/pw7/logs]
+  - [curl, -fsSL, https://storage.yandexcloud.net/cloud-certs/CA.pem, -o, /opt/pw7/certs/CA.pem]
+  - [keytool, -importcert, -noprompt, -alias, yandex-cloud-ca, -file, /opt/pw7/certs/CA.pem, -keystore, /opt/pw7/certs/kafka.truststore.jks, -storepass, changeit]
+  - [chown, -R, "yc-user:yc-user", /opt/pw7]
+  - [touch, /opt/pw7/cloud-init-complete]

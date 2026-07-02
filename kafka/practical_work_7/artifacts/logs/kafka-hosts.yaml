@@ -1,0 +1,30 @@
+- name: rc1a-vmhfsns9mrdfghqk.mdb.yandexcloud.net
+  cluster_id: c9q8igmn84u5og8psg3b
+  zone_id: ru-central1-a
+  role: KAFKA
+  resources:
+    resource_preset_id: b2.medium
+    disk_size: "10737418240"
+    disk_type_id: network-hdd
+  health: ALIVE
+  subnet_id: e9bq3ac8l7db994f7am2
+- name: rc1b-u0a53ap2naf8t6r4.mdb.yandexcloud.net
+  cluster_id: c9q8igmn84u5og8psg3b
+  zone_id: ru-central1-b
+  role: KAFKA
+  resources:
+    resource_preset_id: b2.medium
+    disk_size: "10737418240"
+    disk_type_id: network-hdd
+  health: ALIVE
+  subnet_id: e2lm87ukalg3lo2ua2uf
+- name: rc1d-4nr1j06aursg38lp.mdb.yandexcloud.net
+  cluster_id: c9q8igmn84u5og8psg3b
+  zone_id: ru-central1-d
+  role: KAFKA
+  resources:
+    resource_preset_id: b2.medium
+    disk_size: "10737418240"
+    disk_type_id: network-hdd
+  health: ALIVE
+  subnet_id: fl8rj4gon62q7gammllm

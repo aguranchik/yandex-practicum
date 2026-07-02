@@ -1,0 +1,11 @@
+name: pw7-events
+cluster_id: c9q8igmn84u5og8psg3b
+partitions: "3"
+replication_factor: "3"
+topic_config_3:
+  cleanup_policy: CLEANUP_POLICY_DELETE
+  compression_type: COMPRESSION_TYPE_ZSTD
+  retention_bytes: "268435456"
+  retention_ms: "86400000"
+  min_insync_replicas: "2"
+  segment_bytes: "134217728"

@@ -1,0 +1,2 @@
+NAME       IMAGE                COMMAND                 SERVICE   CREATED          STATUS         PORTS
+pw7-nifi   apache/nifi:1.21.0   "../scripts/start.sh"   nifi      10 minutes ago   Up 9 minutes   8000/tcp, 8443/tcp, 10000/tcp, 127.0.0.1:8080->8080/tcp

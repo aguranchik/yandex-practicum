@@ -1,0 +1,43 @@
+id: c9q8igmn84u5og8psg3b
+folder_id: b1gh1qk9f6nud4fkgq6o
+created_at: "2026-07-02T16:36:29.284332Z"
+name: pw7-kafka
+description: Three-broker KRaft cluster for practical work 7
+labels:
+  project: practical-work-7
+environment: PRODUCTION
+monitoring:
+  - name: Console
+    description: Console charts
+    link: https://console.cloud.yandex.ru/folders/b1gh1qk9f6nud4fkgq6o/managed-kafka/cluster/c9q8igmn84u5og8psg3b/monitoring
+config:
+  version: "3.9"
+  kafka:
+    resources:
+      resource_preset_id: b2.medium
+      disk_size: "10737418240"
+      disk_type_id: network-hdd
+    kafka_config_3:
+      compression_type: COMPRESSION_TYPE_ZSTD
+      log_retention_ms: "86400000"
+      log_segment_bytes: "134217728"
+      num_partitions: "3"
+      default_replication_factor: "3"
+  zone_id:
+    - ru-central1-a
+    - ru-central1-b
+    - ru-central1-d
+  brokers_count: "1"
+  schema_registry: true
+  access: {}
+  rest_api_config: {}
+  kafka_ui_config: {}
+  patch_version: 3.9.2
+network_id: enp63kfhosrunagtlnt6
+health: ALIVE
+status: RUNNING
+security_group_ids:
+  - enp1397oiv0dmi6im3ik
+maintenance_window:
+  anytime: {}
+kafka_ui: {}
