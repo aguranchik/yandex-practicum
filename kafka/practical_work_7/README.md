@@ -134,9 +134,9 @@ CONFIRM_PAID_RESOURCES=YES ./scripts/create-cloud.sh
 CONFIRM_DESTROY=DELETE ./scripts/destroy-cloud.sh
 ```
 
-## Результаты облачной проверки
+## Результаты проверки
 
-Проверка выполнена 2 июля 2026 года.
+Проверка.
 
 - Managed Kafka cluster ID: `c9q8igmn84u5og8psg3b`.
 - Статус кластера: `RUNNING`, health: `ALIVE`.
@@ -165,6 +165,4 @@ CONFIRM_DESTROY=DELETE ./scripts/destroy-cloud.sh
 Скриншоты ответов Schema Registry, логов приложений, работающего NiFi flow и
 трёх Kafka-брокеров находятся в `artifacts/screenshots/`.
 
-После сбора доказательств 3 июля 2026 года стенд полностью удалён. Контрольная
-проверка через YC CLI показала отсутствие кластеров Managed Kafka, VM и дисков;
-сеть, подсети и security groups с префиксом `pw7` также удалены.
+После проверки стенд удалён.
