@@ -1,0 +1,20 @@
+groups:
+  - name: kafka-availability
+    rules:
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka-brokers"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka broker {{ $labels.instance }} is unavailable"
+          description: "Prometheus has not scraped {{ $labels.instance }} for at least 30 seconds."
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: kafka_server_replicamanager_underreplicatedpartitions > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka has under-replicated partitions"
+          description: "Broker {{ $labels.instance }} reports under-replicated partitions."

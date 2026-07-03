@@ -1,0 +1,7 @@
+runtime/connect-output/*
+!runtime/connect-output/.gitkeep
+*.log
+.env
+secrets/*
+!secrets/.gitkeep
+!secrets/telegram_bot_token.example

@@ -1,0 +1,748 @@
+name: marketplace-final-project
+
+x-kafka-common: &kafka-common
+  image: confluentinc/cp-kafka:7.7.1
+  restart: unless-stopped
+  entrypoint: ["/bin/bash", "-c"]
+  command: ["exec kafka-server-start /etc/kafka/server.properties"]
+  environment:
+    KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+    KAFKA_OPTS: >-
+      -Djava.security.auth.login.config=/etc/kafka/jaas/kafka_server_jaas.conf
+      -Dzookeeper.sasl.client=true
+      -Dzookeeper.sasl.client.username=kafka
+      -javaagent:/opt/jmx/jmx_prometheus_javaagent-0.15.0.jar=9404:/opt/jmx/kafka.yml
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - >-
+        KAFKA_OPTS= kafka-topics --bootstrap-server localhost:9092
+        --command-config /etc/kafka/client/admin.properties --list >/dev/null 2>&1
+    interval: 10s
+    timeout: 10s
+    retries: 30
+    start_period: 30s
+  networks:
+    - marketplace
+
+x-go-build: &go-build
+  context: .
+  dockerfile: Dockerfile
+
+services:
+  primary-zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    volumes:
+      - ./config/jaas/zookeeper_server_jaas.conf:/etc/zookeeper/secrets/zookeeper_server_jaas.conf:ro
+      - primary_zookeeper_data:/var/lib/zookeeper/data
+      - primary_zookeeper_log:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/zookeeper/secrets/zookeeper_server_jaas.conf
+        -Dzookeeper.authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+        -Dzookeeper.allowSaslFailedClients=false
+        -Dzookeeper.requireClientAuthScheme=sasl
+    networks:
+      - marketplace
+
+  secondary-zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    volumes:
+      - ./config/jaas/zookeeper_server_jaas.conf:/etc/zookeeper/secrets/zookeeper_server_jaas.conf:ro
+      - secondary_zookeeper_data:/var/lib/zookeeper/data
+      - secondary_zookeeper_log:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx256m"
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/zookeeper/secrets/zookeeper_server_jaas.conf
+        -Dzookeeper.authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+        -Dzookeeper.allowSaslFailedClients=false
+        -Dzookeeper.requireClientAuthScheme=sasl
+    networks:
+      - marketplace
+
+  primary-kafka-1:
+    <<: *kafka-common
+    depends_on:
+      - primary-zookeeper
+    ports:
+      - "127.0.0.1:19092:19092"
+      - "127.0.0.1:19401:9404"
+    volumes:
+      - ./config/kafka/primary-kafka-1.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/primary-kafka-1:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - primary_kafka_1_data:/var/lib/kafka/data
+
+  primary-kafka-2:
+    <<: *kafka-common
+    depends_on:
+      - primary-zookeeper
+    ports:
+      - "127.0.0.1:19093:19093"
+      - "127.0.0.1:19402:9404"
+    volumes:
+      - ./config/kafka/primary-kafka-2.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/primary-kafka-2:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - primary_kafka_2_data:/var/lib/kafka/data
+
+  primary-kafka-3:
+    <<: *kafka-common
+    depends_on:
+      - primary-zookeeper
+    ports:
+      - "127.0.0.1:19094:19094"
+      - "127.0.0.1:19403:9404"
+    volumes:
+      - ./config/kafka/primary-kafka-3.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/primary-kafka-3:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - primary_kafka_3_data:/var/lib/kafka/data
+
+  secondary-kafka-1:
+    <<: *kafka-common
+    depends_on:
+      - secondary-zookeeper
+    ports:
+      - "127.0.0.1:29092:29092"
+      - "127.0.0.1:29401:9404"
+    volumes:
+      - ./config/kafka/secondary-kafka-1.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/secondary-kafka-1:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - secondary_kafka_1_data:/var/lib/kafka/data
+
+  secondary-kafka-2:
+    <<: *kafka-common
+    depends_on:
+      - secondary-zookeeper
+    ports:
+      - "127.0.0.1:29093:29093"
+      - "127.0.0.1:29402:9404"
+    volumes:
+      - ./config/kafka/secondary-kafka-2.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/secondary-kafka-2:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - secondary_kafka_2_data:/var/lib/kafka/data
+
+  secondary-kafka-3:
+    <<: *kafka-common
+    depends_on:
+      - secondary-zookeeper
+    ports:
+      - "127.0.0.1:29094:29094"
+      - "127.0.0.1:29403:9404"
+    volumes:
+      - ./config/kafka/secondary-kafka-3.properties:/etc/kafka/server.properties:ro
+      - ./config/jaas:/etc/kafka/jaas:ro
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./certs/secondary-kafka-3:/etc/kafka/secrets:ro
+      - ./config/jmx:/opt/jmx:ro
+      - secondary_kafka_3_data:/var/lib/kafka/data
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.1
+    depends_on:
+      primary-kafka-1:
+        condition: service_healthy
+      primary-kafka-2:
+        condition: service_healthy
+      primary-kafka-3:
+        condition: service_healthy
+      secondary-kafka-1:
+        condition: service_healthy
+      secondary-kafka-2:
+        condition: service_healthy
+      secondary-kafka-3:
+        condition: service_healthy
+    volumes:
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./scripts:/scripts:ro
+    command: ["/bin/bash", "/scripts/create-topics-and-acls.sh"]
+    networks:
+      - marketplace
+
+  kafka-client:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./config/client:/etc/kafka/client:ro
+      - ./certs/client:/etc/kafka/certs:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["sleep infinity"]
+    networks:
+      - marketplace
+
+  mirror-maker:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      KAFKA_LOG4J_OPTS: -Dlog4j.configuration=file:/etc/kafka/connect-log4j.properties
+    volumes:
+      - ./config/mm2:/etc/kafka/mm2:ro
+      - ./certs/client:/etc/kafka/client:ro
+    command:
+      - connect-mirror-maker
+      - /etc/kafka/mm2/connect-mirror-maker.properties
+    networks:
+      - marketplace
+
+  akhq:
+    image: tchiotludo/akhq:0.27.0
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx384m"
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            primary:
+              properties:
+                bootstrap.servers: "primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092"
+                security.protocol: SASL_SSL
+                sasl.mechanism: PLAIN
+                sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";
+                ssl.truststore.location: /app/certs/kafka.truststore.jks
+                ssl.truststore.password: changeit
+                ssl.endpoint.identification.algorithm: https
+            secondary:
+              properties:
+                bootstrap.servers: "secondary-kafka-1:9092,secondary-kafka-2:9092,secondary-kafka-3:9092"
+                security.protocol: SASL_SSL
+                sasl.mechanism: PLAIN
+                sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin-secret";
+                ssl.truststore.location: /app/certs/kafka.truststore.jks
+                ssl.truststore.password: changeit
+                ssl.endpoint.identification.algorithm: https
+    volumes:
+      - ./certs/client:/app/certs:ro
+    networks:
+      - marketplace
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:15432:5432"
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace-secret
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - marketplace
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.7.1
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8083:8083"
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      CONNECT_BOOTSTRAP_SERVERS: primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: final-connect
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-statuses
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /usr/share/java,/etc/kafka-connect/jars
+      CONNECT_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_SASL_MECHANISM: PLAIN
+      CONNECT_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="connect" password="connect-secret";'
+      CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/certs/kafka.truststore.jks
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: changeit
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="connect" password="connect-secret";'
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/certs/kafka.truststore.jks
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: changeit
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="connect" password="connect-secret";'
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/certs/kafka.truststore.jks
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: changeit
+      CONNECT_ADMIN_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_ADMIN_SASL_MECHANISM: PLAIN
+      CONNECT_ADMIN_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="connect" password="connect-secret";'
+      CONNECT_ADMIN_SSL_TRUSTSTORE_LOCATION: /etc/kafka/certs/kafka.truststore.jks
+      CONNECT_ADMIN_SSL_TRUSTSTORE_PASSWORD: changeit
+    volumes:
+      - ./kafka-connect/plugins:/etc/kafka-connect/jars:ro
+      - ./runtime/connect-output:/data
+      - ./certs/client:/etc/kafka/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - marketplace
+
+  connect-init:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    volumes:
+      - ./config/kafka-connect:/config:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        curl --fail --show-error --silent
+        -X PUT -H 'Content-Type: application/json'
+        --data @/config/filtered-products-file.json
+        http://kafka-connect:8083/connectors/filtered-products-file/config
+    networks:
+      - marketplace
+
+  stream-processor:
+    build:
+      <<: *go-build
+      args:
+        APP: stream-processor
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKERS: primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092
+      KAFKA_USERNAME: processor
+      KAFKA_PASSWORD: processor-secret
+      KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+      - ./data:/data:ro
+    command: ["filter"]
+    networks:
+      - marketplace
+
+  storage-indexer:
+    build:
+      <<: *go-build
+      args:
+        APP: storage-indexer
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      PRIMARY_KAFKA_BROKERS: primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092
+      PRIMARY_KAFKA_USERNAME: storage
+      PRIMARY_KAFKA_PASSWORD: storage-secret
+      PRIMARY_KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      SECONDARY_KAFKA_BROKERS: secondary-kafka-1:9092,secondary-kafka-2:9092,secondary-kafka-3:9092
+      SECONDARY_KAFKA_USERNAME: storage
+      SECONDARY_KAFKA_PASSWORD: storage-secret
+      SECONDARY_KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      DATABASE_URL: postgres://marketplace:marketplace-secret@postgres:5432/marketplace
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+    networks:
+      - marketplace
+
+  shop-producer:
+    profiles: ["tools"]
+    build:
+      <<: *go-build
+      args:
+        APP: shop-producer
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKERS: primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092
+      KAFKA_USERNAME: shop
+      KAFKA_PASSWORD: shop-secret
+      KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      PRODUCTS_FILE: /data/products.jsonl
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+      - ./data:/data:ro
+    networks:
+      - marketplace
+
+  client:
+    profiles: ["tools"]
+    build:
+      <<: *go-build
+      args:
+        APP: client
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: primary-kafka-1:9092,primary-kafka-2:9092,primary-kafka-3:9092
+      KAFKA_USERNAME: client
+      KAFKA_PASSWORD: client-secret
+      KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      DATABASE_URL: postgres://marketplace:marketplace-secret@postgres:5432/marketplace
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+    networks:
+      - marketplace
+
+  hadoop-namenode:
+    profiles: ["analytics"]
+    image: apache/hadoop:3.4.1
+    platform: linux/amd64
+    user: root
+    restart: unless-stopped
+    environment:
+      HADOOP_HEAPSIZE_MAX: 384
+    ports:
+      - "127.0.0.1:9870:9870"
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/config/hdfs-site-namenode.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./hadoop/scripts/namenode_entrypoint.sh:/namenode_entrypoint.sh:ro
+      - hadoop_namenode_data:/usr/local/hadoop/hdfs/namenode
+    entrypoint: ["/bin/bash", "/namenode_entrypoint.sh"]
+    command: ["hdfs", "namenode"]
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs dfsadmin -report >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    networks:
+      - marketplace
+
+  hadoop-datanode-1:
+    profiles: ["analytics"]
+    image: apache/hadoop:3.4.1
+    platform: linux/amd64
+    user: root
+    restart: unless-stopped
+    environment:
+      HADOOP_HEAPSIZE_MAX: 384
+    depends_on:
+      hadoop-namenode:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9864:9864"
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/config/hdfs-site-datanode-1.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./hadoop/scripts/datanode_entrypoint.sh:/datanode_entrypoint.sh:ro
+      - hadoop_datanode_1_data:/usr/local/hadoop/hdfs/datanode
+    entrypoint: ["/bin/bash", "/datanode_entrypoint.sh"]
+    command: ["hdfs", "datanode"]
+    networks:
+      - marketplace
+
+  hadoop-datanode-2:
+    profiles: ["analytics"]
+    image: apache/hadoop:3.4.1
+    platform: linux/amd64
+    user: root
+    restart: unless-stopped
+    environment:
+      HADOOP_HEAPSIZE_MAX: 384
+    depends_on:
+      hadoop-namenode:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9865:9864"
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/config/hdfs-site-datanode-2.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./hadoop/scripts/datanode_entrypoint.sh:/datanode_entrypoint.sh:ro
+      - hadoop_datanode_2_data:/usr/local/hadoop/hdfs/datanode
+    entrypoint: ["/bin/bash", "/datanode_entrypoint.sh"]
+    command: ["hdfs", "datanode"]
+    networks:
+      - marketplace
+
+  hadoop-datanode-3:
+    profiles: ["analytics"]
+    image: apache/hadoop:3.4.1
+    platform: linux/amd64
+    user: root
+    restart: unless-stopped
+    environment:
+      HADOOP_HEAPSIZE_MAX: 384
+    depends_on:
+      hadoop-namenode:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9866:9864"
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hadoop/config/hdfs-site-datanode-3.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml:ro
+      - ./hadoop/scripts/datanode_entrypoint.sh:/datanode_entrypoint.sh:ro
+      - hadoop_datanode_3_data:/usr/local/hadoop/hdfs/datanode
+    entrypoint: ["/bin/bash", "/datanode_entrypoint.sh"]
+    command: ["hdfs", "datanode"]
+    networks:
+      - marketplace
+
+  hdfs-loader:
+    profiles: ["analytics"]
+    build:
+      <<: *go-build
+      args:
+        APP: hdfs-loader
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      hadoop-namenode:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: secondary-kafka-1:9092,secondary-kafka-2:9092,secondary-kafka-3:9092
+      KAFKA_USERNAME: analytics
+      KAFKA_PASSWORD: analytics-secret
+      KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      WEBHDFS_URL: http://hadoop-namenode:9870
+      HDFS_USER: root
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+    networks:
+      - marketplace
+
+  spark-master:
+    profiles: ["analytics"]
+    image: apache/spark:3.5.3
+    restart: unless-stopped
+    environment:
+      SPARK_DAEMON_MEMORY: 256m
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+    ports:
+      - "127.0.0.1:18081:8080"
+      - "127.0.0.1:7077:7077"
+    networks:
+      - marketplace
+
+  spark-worker:
+    profiles: ["analytics"]
+    image: apache/spark:3.5.3
+    restart: unless-stopped
+    environment:
+      SPARK_DAEMON_MEMORY: 256m
+      SPARK_WORKER_MEMORY: 512m
+      SPARK_WORKER_CORES: 1
+    depends_on:
+      - spark-master
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://spark-master:7077
+    networks:
+      - marketplace
+
+  spark-analytics:
+    profiles: ["analytics"]
+    image: apache/spark:3.5.3
+    depends_on:
+      - spark-master
+      - spark-worker
+      - hadoop-datanode-1
+      - hadoop-datanode-2
+      - hadoop-datanode-3
+    volumes:
+      - ./spark/jobs:/opt/spark/jobs:ro
+      - ./hadoop/config/core-site.xml:/opt/spark/conf/core-site.xml:ro
+      - ./hadoop/config/hdfs-site-namenode.xml:/opt/spark/conf/hdfs-site.xml:ro
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - spark://spark-master:7077
+      - --driver-memory
+      - 512m
+      - --executor-memory
+      - 512m
+      - --total-executor-cores
+      - "1"
+      - --conf
+      - spark.sql.session.timeZone=UTC
+      - /opt/spark/jobs/recommendations.py
+    networks:
+      - marketplace
+
+  recommendation-publisher:
+    profiles: ["analytics"]
+    build:
+      <<: *go-build
+      args:
+        APP: recommendation-publisher
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      hadoop-namenode:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: secondary-kafka-1:9092,secondary-kafka-2:9092,secondary-kafka-3:9092
+      KAFKA_USERNAME: analytics
+      KAFKA_PASSWORD: analytics-secret
+      KAFKA_CA_FILE: /etc/kafka/ca/ca.crt
+      WEBHDFS_URL: http://hadoop-namenode:9870
+      HDFS_USER: root
+    volumes:
+      - ./certs/ca:/etc/kafka/ca:ro
+    networks:
+      - marketplace
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    networks:
+      - marketplace
+
+  alert-receiver:
+    build:
+      <<: *go-build
+      args:
+        APP: alert-receiver
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - marketplace
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    depends_on:
+      alert-receiver:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9093:9093"
+    environment:
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-0}
+    volumes:
+      - ./config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.template.yml:ro
+      - ./secrets/telegram_bot_token:/run/secrets/telegram_bot_token:ro
+      - alertmanager_data:/alertmanager
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        sed "s/__TELEGRAM_CHAT_ID__/$${TELEGRAM_CHAT_ID}/g"
+        /etc/alertmanager/alertmanager.template.yml > /tmp/alertmanager.yml &&
+        exec /bin/alertmanager
+        --config.file=/tmp/alertmanager.yml
+        --storage.path=/alertmanager
+    networks:
+      - marketplace
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:13000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - marketplace
+
+networks:
+  marketplace:
+    name: marketplace-final-project-net
+
+volumes:
+  primary_zookeeper_data:
+  primary_zookeeper_log:
+  secondary_zookeeper_data:
+  secondary_zookeeper_log:
+  primary_kafka_1_data:
+  primary_kafka_2_data:
+  primary_kafka_3_data:
+  secondary_kafka_1_data:
+  secondary_kafka_2_data:
+  secondary_kafka_3_data:
+  postgres_data:
+  hadoop_namenode_data:
+  hadoop_datanode_1_data:
+  hadoop_datanode_2_data:
+  hadoop_datanode_3_data:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
